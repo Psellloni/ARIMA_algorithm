@@ -13,6 +13,7 @@ def read_some_file():
 
     file_name, file_type = os.path.splitext(file)
 
+    #reading file and writing data to dataframe
     if file_type == '.csv':
         data = pd.read_csv(file)
         df = pd.DataFrame(data=data)
@@ -30,11 +31,14 @@ def test_model(df: pd.DataFrame):
     if df.shape[1] == 1:
         train, test = train_and_test_split(df)
 
+        #building an arima model and making a prediction for one variable
         model = pm.auto_arima(train)
 
         prediction = model.predict(n_periods=len(test))
 
-        print(mape(test, prediction))
+        mapa = mape(test, prediction)
+
+        print(f'mape: {mapa}')
 
 
 
@@ -42,6 +46,7 @@ def test_model(df: pd.DataFrame):
 def train_and_test_split(df: pl.DataFrame):
     n_values = int(input('Enter a number of values to be predicted: '))
 
+    #spliting dataframe to test and train
     train = df[:(len(df) - n_values)]
     test = df[(len(df) - n_values):]
 
