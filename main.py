@@ -25,8 +25,19 @@ def read_some_file():
 
     return None
 
+
+def train_and_test_split(df: pl.DataFrame):
+    days = input('Enter a number of days to be predicted: ')
+
+    train = df[:(len(df) - days)]
+    test = df[(len(df) - days):]
+
+    return train, test
+
+
 def main():
-     read_some_file()
+     df = read_some_file()
+     train, test = train_and_test_split(df)
 
 if __name__ == '__main__':
     main()
