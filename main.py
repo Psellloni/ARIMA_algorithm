@@ -27,16 +27,23 @@ def read_some_file():
 
     return None
 
-def train_and_test_split(df: pl.DataFrame):
+def train_and_test_split(df: pd.DataFrame, df_corr: pd.DataFrame, col_name: str):
     n_values = int(input('Enter a number of values to be predicted: '))
 
+    mas = []
+    for col in df.columns:
+        if df_corr[col][col_name] < 0.35:
+            mas.append(col)
+
+    real_df = df.drop(mas, axis=1)
+
     #spliting dataframe to test and train
-    train = df[:(len(df) - n_values)]
-    test = df[(len(df) - n_values):]
+    train = real_df[:(len(real_df) - n_values)]
+    test = real_df[(len(real_df) - n_values):]
 
-    return train, test, n_values
+    return train, test, n_values, real_df
 
-def test_model(df: pd.DataFrame):
+def test_model(df: pd.DataFrame, df_corr: pd.DataFrame):
     if df.shape[1] == 1:
         train, test = train_and_test_split(df)
 
@@ -51,7 +58,7 @@ def test_model(df: pd.DataFrame):
         print(df.columns)
         col_name = input(f'choose column to be predicted: ')
 
-        train, test, n_values = train_and_test_split(df)
+        train, test, n_values, real_df = train_and_test_split(df, df_corr, col_name)
 
         # building a linear regression model and making a prediction
         model = LinearRegression()
@@ -66,6 +73,7 @@ def test_model(df: pd.DataFrame):
 
         mapa2 = mape(test[col_name], prediction2)
 
+        #deciding which model is better using mean_absolute_percentage_error
         if mapa < mapa2:
             print(f'LinearRegression mape: {mapa}')
             model_final = 'LR'
@@ -73,16 +81,19 @@ def test_model(df: pd.DataFrame):
             print(f'ARIMA mape: {mapa2}')
             model_final = 'AR'
 
-        return model_final, col_name, n_values
+        return model_final, col_name, n_values, real_df
 
-def building_model(model_final: str, df: pd.DataFrame, col_name: str, n_values: int):
+def building_model(model_final: str, df: pd.DataFrame,
+                   col_name: str, n_values: int, real_df: pd.DataFrame):
     if model_final == 'LR':
-        model_x = pm.auto_arima(df.drop(col_name, axis=1))
+        #maling predictions for features using arima
+        model_x = pm.auto_arima(real_df.drop(col_name, axis=1))
         prediction_x = model_x.predict(n_periods=n_values)
         prediction_x = pd.DataFrame(data=prediction_x)
 
+        #making prediction for y using LinearRegression
         model_y = LinearRegression()
-        model_y.fit(df.drop(col_name, axis=1), df[col_name])
+        model_y.fit(real_df.drop(col_name, axis=1), real_df[col_name])
         prediction_y = model_y.predict(prediction_x)
 
         print(prediction_y)
@@ -91,8 +102,12 @@ def building_model(model_final: str, df: pd.DataFrame, col_name: str, n_values: 
 
 def main():
      df = read_some_file()
-     model_final, col_name, n_values = test_model(df)
-     building_model(model_final, df, col_name, n_values)
+
+    #making df of correlations
+     df_corr = df.corr()
+
+     model_final, col_name, n_values, real_df = test_model(df, df_corr)
+     building_model(model_final, df, col_name, n_values, real_df)
 
 
 if __name__ == '__main__':
