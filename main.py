@@ -7,7 +7,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_percentage_error as mape
 import pmdarima as pm
 
-
 def read_some_file():
     file = input('Enter absolute path: ')
 
@@ -44,22 +43,20 @@ def train_and_test_split(df: pd.DataFrame, df_corr: pd.DataFrame, col_name: str)
     return train, test, n_values, real_df
 
 def test_model(df: pd.DataFrame, df_corr: pd.DataFrame):
-    if df.shape[1] == 1:
-        train, test = train_and_test_split(df)
+    # choosing column to be predicted
+    print(df.columns)
+    col_name = input(f'choose column to be predicted: ')
 
+    train, test, n_values, real_df = train_and_test_split(df, df_corr, col_name)
+
+    if train.shape[1] == 1:
         #building an arima model and making a prediction for one variable
-        model = pm.auto_arima(train)
+        model = pm.auto_arima(train[col_name])
         prediction = model.predict(n_periods=len(test))
-        mapa = mape(test, prediction)
 
-        print(f'mape: {mapa}')
+        print(f'mape: {mape(test[col_name], prediction)}')
+        model_final = 'AR'
     else:
-        #choosing column to be predicted
-        print(df.columns)
-        col_name = input(f'choose column to be predicted: ')
-
-        train, test, n_values, real_df = train_and_test_split(df, df_corr, col_name)
-
         # building a linear regression model and making a prediction
         model = LinearRegression()
         model.fit(train.drop(col_name, axis=1), train[col_name])
@@ -81,7 +78,7 @@ def test_model(df: pd.DataFrame, df_corr: pd.DataFrame):
             print(f'ARIMA mape: {mapa2}')
             model_final = 'AR'
 
-        return model_final, col_name, n_values, real_df
+    return model_final, col_name, n_values, real_df
 
 def building_model(model_final: str, df: pd.DataFrame,
                    col_name: str, n_values: int, real_df: pd.DataFrame):
@@ -97,18 +94,23 @@ def building_model(model_final: str, df: pd.DataFrame,
         prediction_y = model_y.predict(prediction_x)
 
         print(prediction_y)
+    elif model_final == 'AR':
+        if real_df.shape[1] == 1:
+            model = pm.auto_arima(real_df[col_name])
+            prediction = model.predict(n_periods=n_values)
 
+            print(prediction)
+        else:
 
 
 def main():
      df = read_some_file()
 
-    #making df of correlations
+     #making df of correlations
      df_corr = df.corr()
 
      model_final, col_name, n_values, real_df = test_model(df, df_corr)
      building_model(model_final, df, col_name, n_values, real_df)
-
 
 if __name__ == '__main__':
     main()
