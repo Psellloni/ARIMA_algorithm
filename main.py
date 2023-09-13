@@ -101,7 +101,7 @@ def building_model(model_final: str, df: pd.DataFrame,
 
             print(prediction)
         else:
-
+            print('ligma ballz')
 
 def main():
      df = read_some_file()
