@@ -27,6 +27,15 @@ def read_some_file():
 
     return None
 
+def train_and_test_split(df: pl.DataFrame):
+    n_values = int(input('Enter a number of values to be predicted: '))
+
+    #spliting dataframe to test and train
+    train = df[:(len(df) - n_values)]
+    test = df[(len(df) - n_values):]
+
+    return train, test, n_values
+
 def test_model(df: pd.DataFrame):
     if df.shape[1] == 1:
         train, test = train_and_test_split(df)
@@ -42,7 +51,7 @@ def test_model(df: pd.DataFrame):
         print(df.columns)
         col_name = input(f'choose column to be predicted: ')
 
-        train, test = train_and_test_split(df)
+        train, test, n_values = train_and_test_split(df)
 
         # building a linear regression model and making a prediction
         model = LinearRegression()
@@ -59,21 +68,32 @@ def test_model(df: pd.DataFrame):
 
         if mapa < mapa2:
             print(f'LinearRegression mape: {mapa}')
+            model_final = 'LR'
         else:
             print(f'ARIMA mape: {mapa2}')
+            model_final = 'AR'
 
-def train_and_test_split(df: pl.DataFrame):
-    n_values = int(input('Enter a number of values to be predicted: '))
+        return model_final, col_name, n_values
 
-    #spliting dataframe to test and train
-    train = df[:(len(df) - n_values)]
-    test = df[(len(df) - n_values):]
+def building_model(model_final: str, df: pd.DataFrame, col_name: str, n_values: int):
+    if model_final == 'LR':
+        model_x = pm.auto_arima(df.drop(col_name, axis=1))
+        prediction_x = model_x.predict(n_periods=n_values)
+        prediction_x = pd.DataFrame(data=prediction_x)
 
-    return train, test
+        model_y = LinearRegression()
+        model_y.fit(df.drop(col_name, axis=1), df[col_name])
+        prediction_y = model_y.predict(prediction_x)
+
+        print(prediction_y)
+
+
 
 def main():
      df = read_some_file()
-     test_model(df)
+     model_final, col_name, n_values = test_model(df)
+     building_model(model_final, df, col_name, n_values)
+
 
 if __name__ == '__main__':
     main()
